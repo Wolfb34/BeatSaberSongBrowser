@@ -26,6 +26,8 @@ namespace SongBrowser.DataAccess
         public BeatmapDifficultySegmentedControlController LevelDifficultyViewController;
         public BeatmapCharacteristicSegmentedControlController BeatmapCharacteristicSelectionViewController;
 
+        public AnnotatedBeatmapLevelCollectionsViewController AnnotatedBeatmapLevelCollectionsViewController;
+
         public RectTransform LevelCollectionTableViewTransform;
 
         public Button TableViewPageUpButton;
@@ -62,23 +64,18 @@ namespace SongBrowser.DataAccess
             LevelSelectionNavigationController = LevelSelectionFlowCoordinator.GetPrivateField<LevelSelectionNavigationController>("_levelSelectionNavigationController");
             Logger.Debug("Acquired LevelSelectionNavigationController [{0}]", LevelSelectionNavigationController.GetInstanceID());
 
-            // this is loaded late but available early, grab globally.
             LevelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
-            //LevelSelectionFlowCoordinator.GetPrivateField<LevelFilteringNavigationController>("_levelFilteringNavigationController");
             Logger.Debug("Acquired LevelFilteringNavigationController [{0}]", LevelFilteringNavigationController.GetInstanceID());
 
-            // grab nav controller elements
             LevelCollectionViewController = LevelSelectionNavigationController.GetPrivateField<LevelCollectionViewController>("_levelCollectionViewController");
             Logger.Debug("Acquired LevelPackLevelsViewController [{0}]", LevelCollectionViewController.GetInstanceID());
 
             LevelDetailViewController = LevelSelectionNavigationController.GetPrivateField<StandardLevelDetailViewController>("_levelDetailViewController");
             Logger.Debug("Acquired StandardLevelDetailViewController [{0}]", LevelDetailViewController.GetInstanceID());
 
-            // grab level collection view controller elements
             LevelCollectionTableView = this.LevelCollectionViewController.GetPrivateField<LevelCollectionTableView>("_levelCollectionTableView");
             Logger.Debug("Acquired LevelPackLevelsTableView [{0}]", LevelCollectionTableView.GetInstanceID());
 
-            // grab letel detail view
             StandardLevelDetailView = LevelDetailViewController.GetPrivateField<StandardLevelDetailView>("_standardLevelDetailView");
             Logger.Debug("Acquired StandardLevelDetailView [{0}]", StandardLevelDetailView.GetInstanceID());
 
@@ -90,6 +87,8 @@ namespace SongBrowser.DataAccess
 
             LevelCollectionTableViewTransform = LevelCollectionTableView.transform as RectTransform;
             Logger.Debug("Acquired TableViewRectTransform from LevelPackLevelsTableView [{0}]", LevelCollectionTableViewTransform.GetInstanceID());
+
+            AnnotatedBeatmapLevelCollectionsViewController = LevelFilteringNavigationController.GetPrivateField<AnnotatedBeatmapLevelCollectionsViewController>("_annotatedBeatmapLevelCollectionsViewController");
 
             TableView tableView = LevelCollectionTableView.GetPrivateField<TableView>("_tableView");
             TableViewPageUpButton = tableView.GetPrivateField<Button>("_pageUpButton");
