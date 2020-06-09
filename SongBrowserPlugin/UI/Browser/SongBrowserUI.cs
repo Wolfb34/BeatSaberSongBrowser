@@ -682,7 +682,7 @@ namespace SongBrowser.UI
                 _model.LastSelectedLevelId = null;
 
                 // save level collection
-                this._model.Settings.currentLevelPackId = levelCollection.collectionName;
+                this._model.Settings.currentLevelCollectionName = levelCollection.collectionName;
                 this._model.Settings.Save();
 
                 StartCoroutine(ProcessSongListEndOfFrame());
@@ -1377,7 +1377,7 @@ namespace SongBrowser.UI
                 IAnnotatedBeatmapLevelCollection currentSelected = _beatUi.GetCurrentSelectedAnnotatedBeatmapLevelCollection();
                 Logger.Debug("Current selected level collection: {0}", currentSelected);
 
-                if (String.IsNullOrEmpty(_model.Settings.currentLevelPackId))
+                if (String.IsNullOrEmpty(_model.Settings.currentLevelCollectionName))
                 {
                     if (currentSelected == null)
                     {
@@ -1385,17 +1385,17 @@ namespace SongBrowser.UI
                         currentSelected = _beatUi.BeatmapLevelsModel.allLoadedBeatmapLevelPackCollection.beatmapLevelPacks[0];
                     }
                 }
-                else if (currentSelected == null || (currentSelected.collectionName != _model.Settings.currentLevelPackId))
+                else if (currentSelected == null || (currentSelected.collectionName != _model.Settings.currentLevelCollectionName))
                 {
-                    Logger.Debug("Automatically selecting level collection: {0}", _model.Settings.currentLevelPackId);
+                    Logger.Debug("Automatically selecting level collection: {0}", _model.Settings.currentLevelCollectionName);
                     _beatUi.LevelFilteringNavigationController.didSelectAnnotatedBeatmapLevelCollectionEvent -= _levelFilteringNavController_didSelectAnnotatedBeatmapLevelCollectionEvent;
 
-                    _lastLevelCollection = _beatUi.GetLevelCollectionByName(_model.Settings.currentLevelPackId);
+                    _lastLevelCollection = _beatUi.GetLevelCollectionByName(_model.Settings.currentLevelCollectionName);
                     if (_lastLevelCollection as PreviewBeatmapLevelPackSO)
                     {
                         Hide();
                     }
-                    _beatUi.SelectLevelCollection(_model.Settings.currentLevelPackId);
+                    _beatUi.SelectLevelCollection(_model.Settings.currentLevelCollectionName);
                     _beatUi.LevelFilteringNavigationController.didSelectAnnotatedBeatmapLevelCollectionEvent += _levelFilteringNavController_didSelectAnnotatedBeatmapLevelCollectionEvent;
                 }
 
