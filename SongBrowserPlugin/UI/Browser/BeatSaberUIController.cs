@@ -122,6 +122,36 @@ namespace SongBrowser.DataAccess
         }
 
         /// <summary>
+        /// Helper to get either or.
+        /// </summary>
+        /// <returns></returns>
+        public IAnnotatedBeatmapLevelCollection GetCurrentSelectedAnnotatedBeatmapLevelCollection()
+        {
+            IAnnotatedBeatmapLevelCollection pack = GetCurrentSelectedLevelPack();
+            if (pack == null)
+            {
+                pack = GetCurrentSelectedPlaylist();
+            }
+
+            return pack;
+        }
+
+        /// <summary>
+        /// Get the currently selected level pack within the LevelPackLevelViewController hierarchy.
+        /// </summary>
+        /// <returns></returns>
+        public IPlaylist GetCurrentSelectedPlaylist()
+        {
+            if (AnnotatedBeatmapLevelCollectionsViewController == null)
+            {
+                return null;
+            }
+
+            IPlaylist playlist = AnnotatedBeatmapLevelCollectionsViewController.selectedAnnotatedBeatmapLevelCollection as IPlaylist;
+            return playlist;
+        }
+
+        /// <summary>
         /// Get level pack by level pack id.
         /// </summary>
         /// <param name="levelPackId"></param>
@@ -134,6 +164,7 @@ namespace SongBrowser.DataAccess
                 if (String.Equals(o.packID, levelPackId))
                 {
                     pack = o;
+                    break;
                 }
             }
 

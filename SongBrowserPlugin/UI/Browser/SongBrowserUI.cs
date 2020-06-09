@@ -658,12 +658,24 @@ namespace SongBrowser.UI
         {
             Logger.Trace("_levelFilteringNavController_didSelectAnnotatedBeatmapLevelCollectionEvent(levelPack={0})", arg2);
 
+            if (arg2 == null)
+            {
+                // Probably means we transitioned between Music Packs and Playlists
+                arg2 = _beatUi.GetCurrentSelectedAnnotatedBeatmapLevelCollection();
+                if (arg2 == null)
+                {
+                    Logger.Warning("Nothing selected.  This is likely an error.");
+                    return;
+                }
+            }
+
             // Do something about preview level packs, they can't be used past this point
             if (arg2 as PreviewBeatmapLevelPackSO)
             {
                 Logger.Info("Hiding SongBrowser, previewing a song pack.");
-                CancelFilter();
+                //CancelFilter();
                 Hide();
+                return;
             }
             else
             {
@@ -1449,8 +1461,11 @@ namespace SongBrowser.UI
                     _beatUi.LevelFilteringNavigationController.didSelectAnnotatedBeatmapLevelCollectionEvent -= _levelFilteringNavController_didSelectAnnotatedBeatmapLevelCollectionEvent;
 
                     _lastLevelPack = _beatUi.GetLevelPackByPackId(_model.Settings.currentLevelPackId);
+                    if (_lastLevelPack as PreviewBeatmapLevelPackSO)
+                    {
+                        Hide();
+                    }
                     _beatUi.SelectLevelPack(_model.Settings.currentLevelPackId);
-
                     _beatUi.LevelFilteringNavigationController.didSelectAnnotatedBeatmapLevelCollectionEvent += _levelFilteringNavController_didSelectAnnotatedBeatmapLevelCollectionEvent;
                 }
 
