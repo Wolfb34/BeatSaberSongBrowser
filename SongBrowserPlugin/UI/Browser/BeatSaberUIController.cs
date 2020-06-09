@@ -110,7 +110,7 @@ namespace SongBrowser.DataAccess
         /// Get the currently selected level pack within the LevelPackLevelViewController hierarchy.
         /// </summary>
         /// <returns></returns>
-        public IBeatmapLevelPack GetCurrentSelectedLevelPack()
+        private IBeatmapLevelPack GetCurrentSelectedLevelPack()
         {
             if (LevelSelectionNavigationController == null)
             {
@@ -122,25 +122,25 @@ namespace SongBrowser.DataAccess
         }
 
         /// <summary>
-        /// Helper to get either or.
+        /// Helper to get either or playlist or 
         /// </summary>
         /// <returns></returns>
         public IAnnotatedBeatmapLevelCollection GetCurrentSelectedAnnotatedBeatmapLevelCollection()
         {
-            IAnnotatedBeatmapLevelCollection pack = GetCurrentSelectedLevelPack();
-            if (pack == null)
+            IAnnotatedBeatmapLevelCollection collection = GetCurrentSelectedLevelPack();
+            if (collection == null)
             {
-                pack = GetCurrentSelectedPlaylist();
+                collection = GetCurrentSelectedPlaylist();
             }
 
-            return pack;
+            return collection;
         }
 
         /// <summary>
-        /// Get the currently selected level pack within the LevelPackLevelViewController hierarchy.
+        /// Get the currently selected level collection from playlists.
         /// </summary>
         /// <returns></returns>
-        public IPlaylist GetCurrentSelectedPlaylist()
+        private IPlaylist GetCurrentSelectedPlaylist()
         {
             if (AnnotatedBeatmapLevelCollectionsViewController == null)
             {
@@ -152,66 +152,81 @@ namespace SongBrowser.DataAccess
         }
 
         /// <summary>
-        /// Get level pack by level pack id.
+        /// Get level collection by level collection name.
         /// </summary>
-        /// <param name="levelPackId"></param>
+        /// <param name="levelCollectionName"></param>
         /// <returns></returns>
-        public IBeatmapLevelPack GetLevelPackByPackId(String levelPackId)
+        public IAnnotatedBeatmapLevelCollection GetLevelCollectionByName(String levelCollectionName)
         {
-            IBeatmapLevelPack pack = null;
+            IAnnotatedBeatmapLevelCollection levelCollection = null;
+
+            // search level packs
             foreach (IBeatmapLevelPack o in BeatmapLevelsModel.allLoadedBeatmapLevelPackCollection.beatmapLevelPacks)
             {
-                if (String.Equals(o.packID, levelPackId))
+                if (String.Equals(o.collectionName, levelCollectionName))
                 {
-                    pack = o;
+                    levelCollection = o;
                     break;
                 }
             }
 
-            return pack;
+            // search playlists
+            if (levelCollection == null)
+            {
+                IAnnotatedBeatmapLevelCollection[] _annotatedBeatmapLevelCollections = AnnotatedBeatmapLevelCollectionsViewController.GetPrivateField<IAnnotatedBeatmapLevelCollection[]>("_annotatedBeatmapLevelCollections");
+                foreach (IAnnotatedBeatmapLevelCollection c in _annotatedBeatmapLevelCollections)
+                {
+                    if (String.Equals(c.collectionName, levelCollectionName))
+                    {
+                        levelCollection = c;
+                        break;
+                    }
+                }
+            }
+
+            return levelCollection;
         }
 
         /// <summary>
-        /// Get Current levels from current level pack.
+        /// Get Current levels from current level collection.
         /// </summary>
         /// <returns></returns>
-        public IPreviewBeatmapLevel[] GetCurrentLevelPackLevels()
+        public IPreviewBeatmapLevel[] GetCurrentLevelCollectionLevels()
         {
-            var levelPack = GetCurrentSelectedLevelPack();
-            if (levelPack == null)
+            var levelCollection = GetCurrentSelectedAnnotatedBeatmapLevelCollection();
+            if (levelCollection == null)
             {
-                Logger.Debug("Current selected level pack is null for some reason...");
+                Logger.Debug("Current selected level collection is null for some reason...");
                 return null;
             }
             
-            return levelPack.beatmapLevelCollection.beatmapLevels;
+            return levelCollection.beatmapLevelCollection.beatmapLevels;
         }
 
         /// <summary>
-        /// Select a level pack.
+        /// Select a level collection.
         /// </summary>
-        /// <param name="levelPackId"></param>
-        public void SelectLevelPack(String levelPackId)
+        /// <param name="levelCollectionName"></param>
+        public void SelectLevelCollection(String levelCollectionName)
         {
-            Logger.Trace("SelectLevelPack({0})", levelPackId);
+            Logger.Trace("SelectLevelCollection({0})", levelCollectionName);
 
             try
             {
-                //var levelPacks = GetLevelPackCollection();
-                IBeatmapLevelPack pack = GetLevelPackByPackId(levelPackId);
+                IAnnotatedBeatmapLevelCollection collection = GetLevelCollectionByName(levelCollectionName);
 
-                if (pack == null)
+                if (collection == null)
                 {
-                    Logger.Debug("Could not locate requested level pack...");
+                    Logger.Debug("Could not locate requested level collection...");
                     return;
                 }
 
-                Logger.Info("Selecting level pack: {0}", pack.packID);
+                Logger.Info("Selecting level collection: {0}", collection.collectionName);
 
-                LevelFilteringNavigationController.SelectBeatmapLevelPackOrPlayList(pack, null);
+                LevelFilteringNavigationController.SelectBeatmapLevelPackOrPlayList(collection as IBeatmapLevelPack, collection as IPlaylist);
                 LevelFilteringNavigationController.TabBarDidSwitch();
                
-                Logger.Debug("Done selecting level pack!");
+                Logger.Debug("Done selecting level collection!");
             }
             catch (Exception e)
             {
@@ -247,7 +262,7 @@ namespace SongBrowser.DataAccess
 
             // try to find the index and scroll to it
             int selectedIndex = 0;
-            List<IPreviewBeatmapLevel> levels = GetCurrentLevelPackLevels().ToList();
+            List<IPreviewBeatmapLevel> levels = GetCurrentLevelCollectionLevels().ToList();
             if (levels.Count <= 0)
             {
                 return;
@@ -301,7 +316,7 @@ namespace SongBrowser.DataAccess
             Logger.Info("Refreshing the song list view.");
             try
             {
-                var levels = GetCurrentLevelPackLevels();
+                var levels = GetCurrentLevelCollectionLevels();
                 if (levels == null)
                 {
                     Logger.Info("Nothing to refresh yet.");
