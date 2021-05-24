@@ -252,6 +252,9 @@ namespace SongBrowser
                 case SongFilterMode.Requirements:
                     filteredSongs = FilterRequirements(unsortedSongs);
                     break;
+                case SongFilterMode.Star:
+                    filteredSongs = FilterStar(unsortedSongs);
+                    break;
                 case SongFilterMode.Custom:
                     Logger.Info("Song filter mode set to custom. Deferring filter behaviour to another mod.");
                     filteredSongs = CustomFilterHandler != null ? CustomFilterHandler.Invoke(selectedBeatmapCollection) : unsortedSongs;
@@ -485,6 +488,12 @@ namespace SongBrowser
 
                 return false;
             }).ToList();
+        }
+
+        private List<IPreviewBeatmapLevel> FilterStar(List<IPreviewBeatmapLevel> levels)
+        {
+            Logger.Info("Called the FilterStar function.");
+            return levels;
         }
 
         /// <summary>

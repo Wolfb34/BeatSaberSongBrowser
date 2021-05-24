@@ -341,12 +341,12 @@ namespace SongBrowser.UI
 
             string[] filterButtonNames = new string[]
             {
-                    "Search", "Ranked", "Unranked", "Requirements"
+                    "Search", "Ranked", "Unranked", "Requirements", "Star Rating"
             };
 
             SongFilterMode[] filterModes = new SongFilterMode[]
             {
-                    SongFilterMode.Search, SongFilterMode.Ranked, SongFilterMode.Unranked, SongFilterMode.Requirements
+                    SongFilterMode.Search, SongFilterMode.Ranked, SongFilterMode.Unranked, SongFilterMode.Requirements, SongFilterMode.Star
             };
 
             _filterButtonGroup = new List<SongFilterButton>();
@@ -823,6 +823,10 @@ namespace SongBrowser.UI
                 case SongFilterMode.Search:
                     OnSearchButtonClickEvent();
                     break;
+                case SongFilterMode.Star:
+                    Logger.Info("Click star button.");
+                    OnStarButtonClickEvent();
+                    break;
                 default:
                     _model.Settings.Save();
                     ProcessSongList();
@@ -840,6 +844,17 @@ namespace SongBrowser.UI
             Logger.Debug("Filter button - {0} - pressed.", SongFilterMode.Search.ToString());
 
             this.ShowSearchKeyboard();
+        }
+
+        /// <summary>
+        /// Display the keyboard.
+        /// </summary>
+        /// <param name="sortMode"></param>
+        private void OnStarButtonClickEvent()
+        {
+            Logger.Debug("Filter button - {0} - pressed.", SongFilterMode.Star.ToString());
+
+            this.ShowStarFilter();
         }
 
         /// <summary>
@@ -1047,6 +1062,7 @@ namespace SongBrowser.UI
         /// </summary>
         void ShowSearchKeyboard()
         {
+            Logger.Info("Creating Search keyboard");
             var modalKbTag = new BeatSaberMarkupLanguage.Tags.ModalKeyboardTag();
             var modalKbView = modalKbTag.CreateObject(_beatUi.LevelSelectionNavigationController.rectTransform);
             modalKbView.gameObject.SetActive(true);
@@ -1065,6 +1081,41 @@ namespace SongBrowser.UI
             Logger.Debug("Searching for \"{0}\"...", searchFor);
 
             _model.Settings.filterMode = SongFilterMode.Search;
+            _model.Settings.searchTerms.Insert(0, searchFor);
+            _model.Settings.Save();
+            _model.LastSelectedLevelId = null;
+
+            ProcessSongList();
+
+            RefreshSongUI();
+        }
+
+        /// <summary>
+        /// Display the search keyboard
+        /// </summary>
+        void ShowStarFilter()
+        {
+            Logger.Info("Creating star filter screen.");
+            //var minFilter = new BeatSaberMarkupLanguage.Components.Settings.SliderSetting();
+            //var maxFilter = new Beat
+            var modalTag = new BeatSaberMarkupLanguage.Tags.ModalTag();
+            var modalTransform = modalTag.CreateObject(_beatUi.LevelSelectionNavigationController.rectTransform);
+            modalTransform.gameObject.SetActive(true);
+
+            var modalView = modalTransform.GetComponent<ModalView>();
+            modalView.Show(true, true);
+            //slider.keyboard.EnterPressed += StarViewControllerFilterButtonPressed;
+        }
+
+        /// <summary>
+        /// Handle search.
+        /// </summary>
+        /// <param name="searchFor"></param>
+        private void StarViewControllerFilterButtonPressed(string searchFor)
+        {
+            Logger.Debug("Searching for \"{0}\"...", searchFor);
+
+            _model.Settings.filterMode = SongFilterMode.Star;
             _model.Settings.searchTerms.Insert(0, searchFor);
             _model.Settings.Save();
             _model.LastSelectedLevelId = null;
