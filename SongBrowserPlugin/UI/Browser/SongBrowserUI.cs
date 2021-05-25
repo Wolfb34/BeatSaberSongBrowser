@@ -887,7 +887,7 @@ namespace SongBrowser.UI
 
                 if (_beatUi.StandardLevelDetailView != null)
                 {
-                    RefreshScoreSaberData(_beatUi.StandardLevelDetailView.selectedDifficultyBeatmap.level);
+                    RefreshScoreSaberData(_beatUi.StandardLevelDetailView.selectedDifficultyBeatmap);
                     RefreshNoteJumpSpeed(_beatUi.StandardLevelDetailView.selectedDifficultyBeatmap.noteJumpMovementSpeed,
                         _beatUi.StandardLevelDetailView.selectedDifficultyBeatmap.noteJumpStartBeatOffset);
                 }
@@ -911,7 +911,7 @@ namespace SongBrowser.UI
             }
 
             UpdateDeleteButtonState(view.selectedDifficultyBeatmap.level.levelID);
-            RefreshScoreSaberData(view.selectedDifficultyBeatmap.level);
+            RefreshScoreSaberData(view.selectedDifficultyBeatmap);
             RefreshNoteJumpSpeed(beatmap.noteJumpMovementSpeed, beatmap.noteJumpStartBeatOffset);
         }
 
@@ -935,7 +935,7 @@ namespace SongBrowser.UI
             }
 
             UpdateDeleteButtonState(_beatUi.LevelDetailViewController.selectedDifficultyBeatmap.level.levelID);
-            RefreshScoreSaberData(view.selectedDifficultyBeatmap.level);
+            RefreshScoreSaberData(view.selectedDifficultyBeatmap);
             RefreshNoteJumpSpeed(view.selectedDifficultyBeatmap.noteJumpMovementSpeed, view.selectedDifficultyBeatmap.noteJumpStartBeatOffset);
         }
 
@@ -1115,8 +1115,9 @@ namespace SongBrowser.UI
         /// <summary>
         /// Update GUI elements that show score saber data.
         /// </summary>
-        public void RefreshScoreSaberData(IPreviewBeatmapLevel level)
+        public void RefreshScoreSaberData(IDifficultyBeatmap selectedBeatmap)
         {
+            IPreviewBeatmapLevel level = selectedBeatmap.level;
             Logger.Trace("RefreshScoreSaberData({0})", level.levelID);
 
             if (!SongDataCore.Plugin.Songs.IsDataAvailable())
@@ -1125,6 +1126,9 @@ namespace SongBrowser.UI
             }
 
             BeatmapDifficulty difficulty = _beatUi.LevelDifficultyViewController.selectedDifficulty;
+            string selectedCharacteristic = selectedBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.characteristicNameLocalizationKey;
+            Logger.Info("Refreshing Score-saber with characteristic {0}", selectedCharacteristic);
+            BeatStarCharacteristics starCharacteristic = GetBeatStarCharacteristic(selectedCharacteristic);
             string difficultyString = difficulty.ToString();
             if (difficultyString.Equals("ExpertPlus"))
             {
@@ -1139,7 +1143,8 @@ namespace SongBrowser.UI
             {
                 Logger.Debug("Checking if have difficulty for song {0} difficulty {1}", level.songName, difficultyString);
                 BeatStarSong scoreSaberSong = SongDataCore.Plugin.Songs.Data.Songs[hash];
-                BeatStarSongDifficultyStats scoreSaberSongDifficulty = scoreSaberSong.diffs.FirstOrDefault(x => String.Equals(x.diff, difficultyString));
+
+                BeatStarSongDifficultyStats scoreSaberSongDifficulty = scoreSaberSong.characteristics[starCharacteristic][difficultyString];
                 if (scoreSaberSongDifficulty != null)
                 {
                     Logger.Debug("Display pp for song.");
@@ -1162,6 +1167,36 @@ namespace SongBrowser.UI
             }
 
             Logger.Debug("Done refreshing score saber stats.");
+        }
+
+        /// <summary>
+        /// Helper to translate a string characteristic into a BeatStarCharacteristic.
+        /// </summary>
+        /// <param name="characteristic"></param>
+        private BeatStarCharacteristics GetBeatStarCharacteristic(string characteristic)
+        {
+ 
+            switch (characteristic)
+            {
+                case "LEVEL_STANDARD":
+                    return BeatStarCharacteristics.Standard;
+                case "LEVEL_ONE_SABER":
+                    return BeatStarCharacteristics.OneSaber;
+                case "LEVEL_NO_ARROWS":
+                    return BeatStarCharacteristics.NoArrows;
+                case "LEVEL_90DEGREE":
+                    return BeatStarCharacteristics.Degree90;
+                case "LEVEL_360DEGREE":
+                    return BeatStarCharacteristics.Degree360;
+                case "LEVEL_ONESABER":
+                    return BeatStarCharacteristics.OneSaber;
+                case "Lightshow":
+                    return BeatStarCharacteristics.Lightshow;
+                case "Lawless":
+                  return BeatStarCharacteristics.Lawless;
+                default:
+                    return BeatStarCharacteristics.Unkown;
+            }
         }
 
         /// <summary>
