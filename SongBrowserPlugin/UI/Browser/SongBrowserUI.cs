@@ -2,7 +2,6 @@
 using HMUI;
 using SongBrowser.DataAccess;
 using SongBrowser.Internals;
-using SongCore.Utilities;
 using SongDataCore.BeatStar;
 using System;
 using System.Collections;
@@ -13,6 +12,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using VRUIControls;
 using Logger = SongBrowser.Logging.Logger;
+using System.Reflection;
 
 namespace SongBrowser.UI
 {
@@ -56,6 +56,7 @@ namespace SongBrowser.UI
         private Button _filterByButton;
         private Button _filterByDisplay;
         private Button _randomButton;
+        private Button _playlistExportButton;
 
         private Button _clearSortFilterButton;
 
@@ -218,7 +219,8 @@ namespace SongBrowser.UI
                         OnClearButtonClickEvent();
                     }
                 },
-                Base64Sprites.XIcon);
+                Base64Sprites.XIcon,
+                "Clear");
             _clearSortFilterButton.SetButtonBackgroundActive(false);
 
             // create SortBy button and its display
@@ -266,13 +268,25 @@ namespace SongBrowser.UI
             _filterByDisplay.SetButtonTextSize(displayButtonFontSize);
             _filterByDisplay.ToggleWordWrapping(false);
 
+            curX += (outerButtonWidth / 2.0f);
+
             // random button
             Logger.Debug("Creating Random Button...");
-            _randomButton = _viewController.CreateIconButton("randomButton", "PracticeButton", new Vector2(curX + (outerButtonWidth / 2.0f) + (randomButtonWidth / 4.0f), clearButtonY), new Vector2(randomButtonWidth, randomButtonWidth), () =>
+            _randomButton = _viewController.CreateIconButton("randomButton", "PracticeButton", new Vector2(curX + (randomButtonWidth / 4.0f), clearButtonY), new Vector2(randomButtonWidth, randomButtonWidth), () =>
             {
                 OnSortButtonClickEvent(SongSortMode.Random);
-            }, Base64Sprites.RandomIcon);
+            }, Base64Sprites.RandomIcon, "Random");
             _randomButton.SetButtonBackgroundActive(false);
+
+            curX += (randomButtonWidth / 4.0f) * 2.0f;
+
+            // playlist export
+            Logger.Debug("Creating playlist export button...");
+            _playlistExportButton = _viewController.CreateIconButton("playlistExportButton", "PracticeButton", new Vector2(curX + (randomButtonWidth / 4.0f), clearButtonY), new Vector2(randomButtonWidth, randomButtonWidth), () =>
+            {
+                ShowInputKeyboard(CreatePlaylistButtonPressed);
+            }, Base64Sprites.PlaylistIcon, "Export Playlist");
+            _playlistExportButton.SetButtonBackgroundActive(false);
         }
 
         /// <summary>
@@ -407,7 +421,7 @@ namespace SongBrowser.UI
             _deleteDialog.gameObject.SetActive(false);
 
             Logger.Debug("Creating delete button...");
-            _deleteButton = BeatSaberUI.CreateIconButton("DeleteLevelButton", _beatUi.ActionButtons, "PracticeButton", Base64Sprites.DeleteIcon);
+            _deleteButton = BeatSaberUI.CreateIconButton("DeleteLevelButton", _beatUi.ActionButtons, "PracticeButton", Base64Sprites.DeleteIcon, "Delete Level");
             _deleteButton.transform.SetAsFirstSibling();
             _deleteButton.onClick.AddListener(delegate () {
                 HandleDeleteSelectedLevel();
@@ -497,6 +511,44 @@ namespace SongBrowser.UI
             {
                 StartCoroutine(RefreshQuickScrollButtonsAsync());
             });
+
+            // stop add favorites from scrolling to the top
+            _beatUi.StandardLevelDetailView.didFavoriteToggleChangeEvent += OnDidFavoriteToggleChangeEvent;
+        }
+
+        /// <summary>
+        /// Handle favorite toggle event.
+        /// </summary>
+        /// <param name="arg1"></param>
+        /// <param name="arg2"></param>
+        private void OnDidFavoriteToggleChangeEvent(StandardLevelDetailView arg1, Toggle arg2)
+        {
+            if (_model.Settings.currentLevelCategoryName == "Favorites")
+            {
+                // TODO - still scrolls to top in this view
+            }
+            else
+            {
+                StartCoroutine(AsyncForceScrollToPosition(_model.LastScrollIndex));
+            }
+        }
+
+        /// <summary>
+        /// Fix internal Beat Saber bug, tableview.reloadData() always resets position and Beat Saber does restore position.
+        /// Wait until end of frame and forcefully set the scroll position.
+        /// </summary>
+        /// <param name="position"></param>
+        /// <returns></returns>
+        public IEnumerator AsyncForceScrollToPosition(float position)
+        {
+            Logger.Debug($"Will attempt force scrolling to position [{_model.LastScrollIndex}] at end of frame.");
+
+            yield return new WaitForEndOfFrame();
+
+            var tv = _beatUi.LevelCollectionTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
+            var sv = tv.GetField<ScrollView, TableView>("_scrollView");
+            Logger.Debug($"Force scrolling to {position}");
+            sv.ScrollTo(position, false);
         }
 
         /// <summary>
@@ -949,6 +1001,11 @@ namespace SongBrowser.UI
                 return;
             }
 
+            // stash the scroll index
+            var tv = _beatUi.LevelCollectionTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
+            var sv = tv.GetField<ScrollView, TableView>("_scrollView");
+            _model.LastScrollIndex = sv.position;
+
             UpdateDeleteButtonState(_beatUi.LevelDetailViewController.selectedDifficultyBeatmap.level.levelID);
             RefreshScoreSaberData(view.selectedDifficultyBeatmap.level);
             RefreshNoteJumpSpeed(view.selectedDifficultyBeatmap.noteJumpMovementSpeed, view.selectedDifficultyBeatmap.noteJumpStartBeatOffset);
@@ -1013,10 +1070,15 @@ namespace SongBrowser.UI
                                     var names = SongCore.Loader.SeperateSongFolders.Select(x => x.SongFolderEntry.Name);
                                     var separateFolders = SongCore.Loader.SeperateSongFolders;
 
-                                    if (names.Contains(collection))
+                                    if (names.Count() > 0 && names.Contains(collection))
                                     {
                                         int folder_index = separateFolders.FindIndex(x => x.SongFolderEntry.Name.Equals(collection));
                                         song = separateFolders[folder_index].Levels.First(x => x.Value.levelID == selectedLevelID).Value;
+                                    }
+                                    else
+                                    {
+                                        // final guess - playlist
+                                        song = SongCore.Loader.CustomLevels.First(x => x.Value.levelID == selectedLevelID).Value;
                                     }
                                 }
 
@@ -1058,17 +1120,26 @@ namespace SongBrowser.UI
         }
 
         /// <summary>
-        /// Display the search keyboard
+        /// Show Search Keyboard
         /// </summary>
         void ShowSearchKeyboard()
         {
-            Logger.Info("Creating Search keyboard");
+            ShowInputKeyboard(SearchViewControllerSearchButtonPressed);
+        }
+
+
+        /// <summary>
+        /// Display the onscreen keyboard
+        /// </summary>
+        /// <param name="enterPressedHandler">Handler for keyboard form submission.</param>
+        void ShowInputKeyboard(Action<string> enterPressedHandler)
+        {
             var modalKbTag = new BeatSaberMarkupLanguage.Tags.ModalKeyboardTag();
             var modalKbView = modalKbTag.CreateObject(_beatUi.LevelSelectionNavigationController.rectTransform);
             modalKbView.gameObject.SetActive(true);
             var modalKb = modalKbView.GetComponent<ModalKeyboard>();
             modalKb.gameObject.SetActive(true);
-            modalKb.keyboard.EnterPressed += SearchViewControllerSearchButtonPressed;
+            modalKb.keyboard.EnterPressed += enterPressedHandler;
             modalKb.modalView.Show(true, true);
         }
 
@@ -1123,6 +1194,19 @@ namespace SongBrowser.UI
             ProcessSongList();
 
             RefreshSongUI();
+        }
+        /// Handle playlist creation.
+        /// </summary>
+        /// <param name="searchFor"></param>
+        private void CreatePlaylistButtonPressed(string playlistName)
+        {
+            if (string.IsNullOrWhiteSpace(playlistName))
+            {
+                return;
+            }
+            BeatSaberPlaylistsLib.Types.IPlaylist playlist = Playlist.CreateNew(playlistName, _beatUi.GetCurrentLevelCollectionLevels());
+            BeatSaberPlaylistsLib.PlaylistManager.DefaultManager.RequestRefresh(Assembly.GetExecutingAssembly().FullName);
+            SongBrowserApplication.MainProgressBar.ShowMessage("Successfully Exported Playlist");
         }
 
         /// <summary>
@@ -1346,6 +1430,7 @@ namespace SongBrowser.UI
             _filterByDisplay?.gameObject.SetActive(outerButtons);
             _clearSortFilterButton?.gameObject.SetActive(clearButton);
             _randomButton?.gameObject.SetActive(outerButtons);
+            _playlistExportButton?.gameObject.SetActive(outerButtons);
 
             RefreshCurrentSelectionDisplay();
             _currentUiState = state;
